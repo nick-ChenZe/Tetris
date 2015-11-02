@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <style>
+        #canvas{
+            background-color: antiquewhite;
+            padding: 0;
+            margin: 0;
+        }
+    </style>
+    <script src="z.js"></script>
+</head>
+<body>
+    <canvas id="canvas" width="400px" height="400px"></canvas>
+<script>
+    var ctx = document.querySelector("canvas").getContext("2d");
+    var init = function(){
+        ctx.moveTo(120,20);
+            ctx.lineTo(40,20);
+        ctx.lineTo(40,380);
+        ctx.lineTo(360,380);
+        ctx.lineTo(360,20);
+        ctx.lineTo(280,20);
+        ctx.stroke();
+    };
+    var pix = 10,_action;
+    var _box = function(){
+//            return {x:200,y:0,w:pix,h:pix,count:0}
+    };
+    var bottom = [];
+    for( var a = 0;a<32;a++){
+        bottom.push([40+10*a,380]);
+    }
+    for(a = 20;a<380;a+=10){
+        bottom.push([30,a]);
+        bottom.push([360,a]);
+    }
+    var shape0 = [[0,0,1,0,1,1,1,2],[0,1,1,1,2,0,2,1],[0,0,0,1,0,2,1,2],[0,0,1,0,2,0,0,1]];
+    var shape1 = [[0,0,1,0,0,1,1,1],[0,0,1,0,0,1,1,1],[0,0,1,0,0,1,1,1],[0,0,1,0,0,1,1,1]];
+    var shape2 = [[0,0,1,0,2,0,3,0],[1,0,1,1,1,2,1,3],[0,0,1,0,2,0,3,0],[2,0,2,1,2,2,2,3]];
+    var shape3 = [[1,0,0,1,1,1,2,1],[0,0,0,1,1,1,0,2],[0,0,1,0,2,0,1,1],[0,1,1,0,1,1,1,2]];
+    var shape4 = [[1,0,2,0,0,1,1,1],[0,0,0,1,1,1,1,2],[1,0,2,0,0,1,1,1],[0,0,0,1,1,1,1,2]];
+    var shape5 = [[0,0,1,0,1,1,2,1],[1,0,0,1,1,1,0,2],[0,0,1,0,1,1,2,1],[1,0,0,1,1,1,0,2]];
+    var _shape = [shape0,shape1,shape2,shape3,shape4,shape5];
+    shape = _shape[Math.floor(Math.random()*6)];
+    var changeShape = function () {
+        shape = _shape[Math.floor(Math.random()*6)];
+    };
+    var fillBox = function(box){
+        var n,args;
+        for(n = 0;n<4;n++){
+            args = [box.x+shape[box.count][2*n]*pix,box.y+shape[box.count][2*n+1]*pix,pix,pix];
+            ctx.strokeRect.apply(ctx,args);
+        }
+    };
+    var clearBox = function(box){
+        var n,args;
+        for(n = 0;n<4;n++){
+            args = [box.x+shape[box.count][2*n]*pix-1,box.y+shape[box.count][2*n+1]*pix-0.9,pix+1.9,pix+1.8];
+            ctx.clearRect.apply(ctx,args);
+        }
+    };
+    addFunction(_box,["left","right","up","down","box"]);
+    _box.prototype = {
+        left:function(){
+            clearBox(box);
+            box.x -= pix;
+            fillBox(box);
+        },
+        right:function(){
+            clearBox(box);
+            box.x += pix;
+            fillBox(box);
+        },
+        up :function(){
+            clearBox(box);
+            if(box.count == 3){
+                box.count = 0;
+            }else{
+                box.count++;
+            }
+            if((max(shape[box.count],0,2)*pix+box.x) >= 350){
+//                console.log((max(shape[box.count],0,2)*pix+box.x));
+//                console.log(box.y);
+                box.x -= 10;
+            }
+            fillBox(box);
+        },
+        down:function(){
+            clearBox(box);
+            box.y += pix;
+            fillBox(box);
+        },
+        box:function(){return {x:200,y:0,w:pix,h:pix,count:0};}
+    };
+    var box1 = new _box();
+    var box = box1.box();
+    fillBox(box);
+    var canMove = function (shape,key) {
+        key = key || 40;
+        var n,basic=[],_basic = [],_canMove = 1,spaceX = 0,spaceY = 0;
+        switch(key){
+            case(37):spaceX = -10;break;
+            case(39):spaceX = 10;break;
+            case(40):spaceY = 10;break;
+        }
+        var canGoStep = function() {
+            for (n = 0; n < 4; n++) {
+                var x = box.x + shape[box.count][2 * n] * pix + spaceX;
+                var y = box.y + shape[box.count][2 * n + 1] * pix + spaceY;
+                basic.push([x, y]);
+                _basic.push([x - spaceX, y - spaceY]);
+            }
+            for (n = 0; n < 4; n++) {
+                if (bottom.indexArray2D(basic[n]) == 1) {
+                    _canMove = 0;
+                }
+            }
+            return _canMove;
+        };
+        if(!canGoStep()){
+            _canMove = 1;
+            basic = [];
+            spaceX = 0;
+            spaceY = 10;
+            if(canGoStep()){
+                _canMove = 2;
+            }else{
+                _canMove = 0;
+                bottom.push2D(_basic);
+            }
+        }
+        return _canMove;
+    };
+    document.addEventListener("keydown",function(e){
+        var _action = whichKeyCode(e.keyCode);
+        var a = canMove(shape, e.keyCode);
+        if(a){
+            if(a == 2){
+                box1.down();
+            }else{
+                box1[_action](e);
+            }
+        }else{
+            shape = _shape[Math.floor(Math.random()*6)];
+            box.x = 200;box.y = 0;
+        }
+    });
+    setInterval(function () {
+        if(!canMove(shape)){
+            box.x = 200;box.y = 0;
+            changeShape();
+        }
+        clearBox(box);
+        box.y += pix;
+        fillBox(box);
+        init();
+    },200);
+    </script>
+</body>
+</html>
